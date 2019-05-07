@@ -1,0 +1,95 @@
+==========================================================================================
+
+         Environment Details :
+          Python                : 3.6.5
+          Tensorflow            : 1.9.0
+          Baseline Accuracy (%) : 32.0
+
+         Best Model for NCE :
+          batch_size            : 128
+          skip_window           : 4       # How many words to consider left and right.
+          num_skips             : 8       # How many times to reuse an input to generate a label.
+          num_sampled           : 256     # Number of negative examples to sample.
+          learning_rate         : 0.5
+
+         Best Model for Cross Entropy :
+          batch_size            : 96
+          skip_window           : 5       # How many words to consider left and right.
+          num_skips             : 8       # How many times to reuse an input to generate a label.
+          num_sampled           : 128     # Number of negative examples to sample.
+          learning_rate         : 1.0
+           
+==========================================================================================
+
+1. Generating batch 
+   Function Signature : generate_batch(data, batch_size, num_skips, skip_window)
+   File name          : word2vec_basic.py  
+   Parameters     
+    @data_index   : the index of a word. You can access a word using data[data_index]
+    @batch_size   : the number of instances in one batch
+    @num_skips    : the number of samples you want to draw in a window 
+            
+    @skip_windows : decides how many words to consider left and right from a context word. 
+                    (So, skip_windows*2+1 = window_size)
+    
+    batch will contain word ids for context words. Dimension is [batch_size].
+    labels will contain word ids for predicting(target) words. Dimension is [batch_size, 1].   
+
+  - To generate batches, I assumed that the related words lie in closed neighbourhoods. 
+  - In other words, the relation of a word with its neighboring words decreases as we move away from it.
+  - Basing this assumption, I've generated the target words by moving one step right and one step left from 
+    the context word until the num_skip number of samples have been collected.
+  - I've made use of a fixed size deque to store all the elements of the current window.
+  - Once we have the required number of smaples from the current window, we append a new element to the deque 
+    and increment the data_index value.
+  - I've made use of 2 variables namely left and rigth for navigation from the centre word and 
+    batch_count signifies the current poisition in the batch and labels.
+
+2. Analogies using word vectors
+   File name          : word_analogy.py
+
+  - I've made use of the word vectors that I learned from both approaches(cross entropy and NCE) in 
+    this word analogy task.
+  - To find the analogies, I made use of the simple method that was described in the documents provided.
+  - Recall that vectors are representing some direction in space. 
+    If (a, b) and (c, d) pairs are analogous pairs then the transformation from a to b (i.e., some x vector when added to a gives b: a + x = b) 
+    should be highly similar to the transformation from c to d (i.e., some y vector when added to c gives d: b + y = d). 
+    In other words, the difference vector (b-a) should be similar to difference vector (d-c). 
+    This difference vector can be thought to represent the relation between the two words. 
+  - The word embedding are at our dispoal once the model is trained. 
+  - Open the word_analogy_dev.txt file that is provided and iterate line by line.
+  - Find the difference vector (b-a) for each pair in the training set and average it out.
+  - Next, move on to the test set which consists of 4 pairs. We find the cosine similarity between the average 
+    obtained above and the vector difference of that pair. 
+  - The pair with highest value for cosine similarity is the most illustrative pair and
+    the pair with least value for cosine similarity is the least illustrative pair 
+
+3. Implement Cross Entropy Loss 
+   Function Signature : cross_entropy_loss(inputs, true_w)
+   File name          : loss_func.py
+
+  - The cross entopy loss has two terms which are labelled as A and B. 
+  - The value for A is evaluated by finding the dot product between {u_o}^T v_c, where u_o is the outer words and 
+    v_c is the centre word. We then apply reduce sum along axis = 1 followed by exponenetial and then by 
+    log opearations. This is basically the expression that deals with the true sample.
+  - The value B is evaluated by matrix multiplication between inputs and the transpose of true_w vector. Then 
+    follows applying exponential  
+  - NCE was a little complicated version of the matrix multiplication operations. I've written comments in the code.
+
+4. Implement NCE Loss   
+   Function Signature : nce_loss(inputs, weights, biases, labels, sample, unigram_prob)         
+   File name          : loss_func.py
+
+5. Finding the top 20 nearest words for {'first', 'american', 'would'}
+   File name          : findSimilarWords.py
+   To find the top 20 nearest words for a given word we do the following :
+   Step 1 : Iterate across all the elements in the dictionary and find the cosine similarity for  
+            each of the word. 
+   Step 2 : We store this value in a new dictionary named similar_dict with 
+              key   : Target Word
+              value : cosine similarity
+   Step 3 : We now sort the elements in the similar_dict in the descending order of values
+            and print the top 20 values in similar_dict. 
+
+   
+
